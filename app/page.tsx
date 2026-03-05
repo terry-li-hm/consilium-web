@@ -7,8 +7,32 @@ import { Button } from '@/components/ui/button'
 import { ModeSelector } from '@/components/ModeSelector'
 import { ApiKeySetup } from '@/components/ApiKeySetup'
 import { getApiKey } from '@/lib/storage'
+import { MODES } from '@/lib/models'
 import { cn } from '@/lib/utils'
 import type { Mode } from '@/types/deliberation'
+
+const EXAMPLES: { label: string; question: string; mode: Mode }[] = [
+  {
+    label: 'Job offer dilemma',
+    question: 'Should I take this job offer? The salary is 20% higher but the role is less senior.',
+    mode: 'oxford',
+  },
+  {
+    label: 'Migration risks',
+    question: 'What are the hidden risks in our plan to migrate to microservices before Q3?',
+    mode: 'premortem',
+  },
+  {
+    label: 'AI timeline',
+    question: "What's the probability that AI replaces most knowledge work within 10 years?",
+    mode: 'forecast',
+  },
+  {
+    label: 'API strategy challenge',
+    question: "Our API-first strategy — what's the strongest case against it?",
+    mode: 'redteam',
+  },
+]
 
 const DOMAIN_OPTIONS = [
   { value: '', label: 'None' },
@@ -76,7 +100,29 @@ export default function HomePage() {
           className="text-base resize-none"
         />
 
+        <div className="flex flex-wrap gap-2">
+          <span className="text-xs text-muted-foreground self-center">Try:</span>
+          {EXAMPLES.map(ex => (
+            <button
+              key={ex.question}
+              onClick={() => { setQuestion(ex.question); setMode(ex.mode) }}
+              className="text-xs px-2 py-1 rounded-full border border-dashed hover:border-primary hover:text-primary transition-colors"
+            >
+              {ex.label}
+            </button>
+          ))}
+        </div>
+
         <ModeSelector selected={mode} onChange={setMode} />
+
+        {(() => {
+          const modeConfig = MODES.find(m => m.id === mode)
+          return modeConfig ? (
+            <p className="text-xs text-muted-foreground text-center">
+              Estimated: {modeConfig.cost} · {modeConfig.duration}
+            </p>
+          ) : null
+        })()}
 
         <div className="space-y-1">
           <label className="text-sm font-medium text-muted-foreground">

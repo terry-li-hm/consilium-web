@@ -71,4 +71,6 @@ export interface ModeConfig {
   rounds: number      // debate rounds
   useBlind: boolean
   useXpol: boolean
+  cost: string
+  duration: string
 }

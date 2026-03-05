@@ -26,6 +26,8 @@ export const MODES: ModeConfig[] = [
     rounds: 0,
     useBlind: false,
     useXpol: false,
+    cost: '~$0.05',
+    duration: '~30 seconds',
   },
   {
     id: 'oxford',
@@ -35,6 +37,8 @@ export const MODES: ModeConfig[] = [
     rounds: 2,
     useBlind: true,
     useXpol: true,
+    cost: '~$0.50',
+    duration: '~4 minutes',
   },
   {
     id: 'redteam',
@@ -44,6 +48,8 @@ export const MODES: ModeConfig[] = [
     rounds: 2,
     useBlind: true,
     useXpol: false,
+    cost: '~$0.35',
+    duration: '~3 minutes',
   },
   {
     id: 'premortem',
@@ -53,6 +59,8 @@ export const MODES: ModeConfig[] = [
     rounds: 1,
     useBlind: true,
     useXpol: false,
+    cost: '~$0.25',
+    duration: '~2 minutes',
   },
   {
     id: 'forecast',
@@ -62,5 +70,7 @@ export const MODES: ModeConfig[] = [
     rounds: 1,
     useBlind: true,
     useXpol: false,
+    cost: '~$0.25',
+    duration: '~2 minutes',
   },
 ]
