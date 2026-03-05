@@ -165,9 +165,14 @@ export default function HomePage() {
         </Button>
       </div>
 
-      <a href="/history" className="text-sm text-muted-foreground hover:underline">
-        View past deliberations
-      </a>
+      <div className="flex items-center gap-4">
+        <a href="/history" className="text-sm text-muted-foreground hover:underline">
+          View past deliberations
+        </a>
+        <a href="/pricing" className="text-sm text-muted-foreground hover:underline">
+          Pricing
+        </a>
+      </div>
     </main>
   )
 }
