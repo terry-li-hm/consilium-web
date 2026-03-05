@@ -48,6 +48,7 @@ async function runBlindPhase(
   onUpdate: (update: PhaseUpdate) => void
 ): Promise<ModelResponse[]> {
   const panelists = run.mode === 'quick' ? PANELISTS.slice(0, 4) : PANELISTS
+  const domainPrefix = run.domain ? domainContext(run.domain) : null
 
   const results = await Promise.all(
     panelists.map(async (p, i) => {
@@ -63,6 +64,7 @@ async function runBlindPhase(
       } else {
         systemPrompt = blindSystemPrompt()
       }
+      if (domainPrefix) systemPrompt = `${domainPrefix}\n\n${systemPrompt}`
       const messages = [
         { role: 'system' as const, content: systemPrompt },
         { role: 'user' as const, content: run.question },
@@ -84,6 +86,7 @@ async function runDebatePhase(
   onUpdate: (update: PhaseUpdate) => void
 ): Promise<RunState['debateRounds']> {
   const debateRounds: RunState['debateRounds'] = []
+  const domainPrefix = run.domain ? domainContext(run.domain) : null
 
   for (let r = 1; r <= rounds; r++) {
     const roundResponses: ModelResponse[] = []
@@ -106,6 +109,7 @@ async function runDebatePhase(
         system = debateSystemPrompt(p.name, r, speakersSoFar.join(', ') || 'none yet')
         if (isChallenger) system += challengerAddition()
       }
+      if (domainPrefix) system = `${domainPrefix}\n\n${system}`
 
       const context = [
         ...run.blindResponses.map((br, j) => ({
@@ -164,10 +168,11 @@ export async function runDeliberation(
   question: string,
   mode: Mode,
   apiKey: string,
-  onUpdate: (update: PhaseUpdate) => void
+  onUpdate: (update: PhaseUpdate) => void,
+  domain?: string
 ): Promise<RunState> {
   const modeConfig = MODES.find(m => m.id === mode)!
-  const run = newRun(question, mode)
+  const run = newRun(question, mode, domain)
 
   // Save initial state
   saveRun(run)
