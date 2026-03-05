@@ -3,7 +3,8 @@ import { PANELISTS, JUDGE, CRITIC, MODES } from './models'
 import {
   blindSystemPrompt, debateSystemPrompt, challengerAddition,
   judgeSystemPrompt, critiqueSystemPrompt, extractionPrompt,
-  redteamAttackerPrompt, premortermPrompt, forecastPrompt
+  redteamAttackerPrompt, premortermPrompt, forecastPrompt,
+  domainContext
 } from './prompts'
 import { streamCompletion, completeOnce } from './streaming'
 import { saveRun } from './storage'
@@ -17,11 +18,12 @@ export type PhaseUpdate = {
   finalState?: RunState
 }
 
-function newRun(question: string, mode: Mode): RunState {
+function newRun(question: string, mode: Mode, domain?: string): RunState {
   return {
     id: crypto.randomUUID(),
     question,
     mode,
+    domain,
     phase: 'idle',
     blindResponses: [],
     xpolResponses: [],
@@ -34,7 +36,7 @@ function newRun(question: string, mode: Mode): RunState {
   }
 }
 
-function anonymise(responses: ModelResponse[]): string {
+export function anonymise(responses: ModelResponse[]): string {
   return responses
     .map((r, i) => `Speaker ${i + 1}:\n${r.content}`)
     .join('\n\n---\n\n')
@@ -48,10 +50,21 @@ async function runBlindPhase(
   const panelists = run.mode === 'quick' ? PANELISTS.slice(0, 4) : PANELISTS
 
   const results = await Promise.all(
-    panelists.map(async (p) => {
+    panelists.map(async (p, i) => {
       let content = ''
+      // For redteam: first panelist is the defender (blind prompt), rest are attackers
+      let systemPrompt: string
+      if (run.mode === 'redteam') {
+        systemPrompt = i === 0 ? blindSystemPrompt() : redteamAttackerPrompt(p.name)
+      } else if (run.mode === 'premortem') {
+        systemPrompt = premortermPrompt(p.name)
+      } else if (run.mode === 'forecast') {
+        systemPrompt = forecastPrompt(p.name)
+      } else {
+        systemPrompt = blindSystemPrompt()
+      }
       const messages = [
-        { role: 'system' as const, content: blindSystemPrompt() },
+        { role: 'system' as const, content: systemPrompt },
         { role: 'user' as const, content: run.question },
       ]
       for await (const token of streamCompletion(p.model, messages, apiKey)) {
@@ -80,13 +93,28 @@ async function runDebatePhase(
       const p = PANELISTS[i]
       const isChallenger = i === PANELISTS.length - 1 && r === rounds
 
-      let system = debateSystemPrompt(p.name, r, speakersSoFar.join(', ') || 'none yet')
-      if (isChallenger) system += challengerAddition()
+      let system: string
+      if (run.mode === 'redteam') {
+        // First panelist is the defender; rest are attackers
+        system = i === 0 ? blindSystemPrompt() : redteamAttackerPrompt(p.name)
+      } else if (run.mode === 'premortem') {
+        system = premortermPrompt(p.name)
+      } else if (run.mode === 'forecast') {
+        system = forecastPrompt(p.name)
+      } else {
+        // oxford mode: standard debate prompt with optional challenger addition
+        system = debateSystemPrompt(p.name, r, speakersSoFar.join(', ') || 'none yet')
+        if (isChallenger) system += challengerAddition()
+      }
 
       const context = [
         ...run.blindResponses.map((br, j) => ({
           role: 'user' as const,
           content: `Speaker ${j + 1} blind claim:\n${br.content}`
+        })),
+        ...(run.xpolResponses ?? []).map(xr => ({
+          role: 'user' as const,
+          content: `${xr.panelistName} cross-pollination:\n${xr.content}`
         })),
         ...roundResponses.map(rr => ({
           role: 'user' as const,
@@ -116,7 +144,7 @@ async function runDebatePhase(
   return debateRounds
 }
 
-function parseExtraction(text: string): Extraction {
+export function parseExtraction(text: string): Extraction {
   const section = (label: string) => {
     const match = text.match(new RegExp(`${label}:\\s*\\n([\\s\\S]*?)(?=\\n[A-Z ]+:|$)`))
     if (!match) return []
@@ -151,19 +179,50 @@ export async function runDeliberation(
   saveRun(run)
 
   if (mode === 'quick') {
-    // Quick mode: skip to judge immediately
+    // Quick mode: skip to judge immediately, streamed
     run.phase = 'judge'
     onUpdate({ phase: 'judge' })
     const anonPanel = anonymise(run.blindResponses)
-    run.judgeResponse = await completeOnce(
+    let quickJudgeContent = ''
+    for await (const token of streamCompletion(
       JUDGE.model,
       [
         { role: 'system', content: judgeSystemPrompt() },
         { role: 'user', content: `Question: ${question}\n\nPanel responses:\n${anonPanel}` },
       ],
       apiKey
-    )
+    )) {
+      quickJudgeContent += token
+      onUpdate({ phase: 'judge', panelistName: JUDGE.name, token })
+    }
+    run.judgeResponse = quickJudgeContent
   } else {
+    // Xpol phase (oxford mode only)
+    if (mode === 'oxford') {
+      run.phase = 'xpol'
+      onUpdate({ phase: 'xpol' })
+      const blindSummary = run.blindResponses
+        .map((br, i) => `Speaker ${i + 1}:\n${br.content}`)
+        .join('\n\n---\n\n')
+      const xpolPrompt = `Here are all initial blind claims from the panel:\n\n${blindSummary}\n\nQuestion: ${question}\n\nYou've seen all initial blind claims. What's the most important gap, contradiction, or underexplored angle across all responses? 150 words max.`
+      const xpolResults = await Promise.all(
+        PANELISTS.map(async (p) => {
+          let content = ''
+          for await (const token of streamCompletion(
+            p.model,
+            [{ role: 'user', content: xpolPrompt }],
+            apiKey
+          )) {
+            content += token
+            onUpdate({ phase: 'xpol', panelistName: p.name, token })
+          }
+          return { panelistName: p.name, content, streaming: false }
+        })
+      )
+      run.xpolResponses = xpolResults
+      saveRun(run)
+    }
+
     // Debate phase
     run.phase = 'debate'
     onUpdate({ phase: 'debate' })
@@ -193,17 +252,22 @@ export async function runDeliberation(
     run.judgeResponse = judgeContent
     saveRun(run)
 
-    // Critique phase
+    // Critique phase (streamed)
     run.phase = 'critique'
     onUpdate({ phase: 'critique' })
-    run.critiqueResponse = await completeOnce(
+    let critiqueContent = ''
+    for await (const token of streamCompletion(
       CRITIC.model,
       [
         { role: 'system', content: critiqueSystemPrompt() },
         { role: 'user', content: run.judgeResponse },
       ],
       apiKey
-    )
+    )) {
+      critiqueContent += token
+      onUpdate({ phase: 'critique', panelistName: CRITIC.name, token })
+    }
+    run.critiqueResponse = critiqueContent
     saveRun(run)
   }
 
