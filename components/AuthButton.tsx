@@ -1,14 +1,21 @@
 'use client'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { User } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export function AuthButton() {
   const [user, setUser] = useState<User | null>(null)
-  const supabase = createClient()
+  const supabaseRef = useRef<SupabaseClient | null>(null)
+
+  function getSupabase() {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
 
   useEffect(() => {
+    const supabase = getSupabase()
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null)
@@ -17,14 +24,14 @@ export function AuthButton() {
   }, [])
 
   async function signIn() {
-    await supabase.auth.signInWithOAuth({
+    await getSupabase().auth.signInWithOAuth({
       provider: 'github',
       options: { redirectTo: `${location.origin}/auth/callback` }
     })
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    await getSupabase().auth.signOut()
     setUser(null)
   }
 
