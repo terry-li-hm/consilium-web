@@ -36,13 +36,8 @@ function newRun(question: string, mode: Mode): RunState {
 
 function anonymise(responses: ModelResponse[]): string {
   return responses
-    .map((r, i) => `Speaker ${i + 1}:
-${r.content}`)
-    .join('
-
----
-
-')
+    .map((r, i) => `Speaker ${i + 1}:\n${r.content}`)
+    .join('\n\n---\n\n')
 }
 
 async function runBlindPhase(
@@ -91,13 +86,11 @@ async function runDebatePhase(
       const context = [
         ...run.blindResponses.map((br, j) => ({
           role: 'user' as const,
-          content: `Speaker ${j + 1} blind claim:
-${br.content}`
+          content: `Speaker ${j + 1} blind claim:\n${br.content}`
         })),
         ...roundResponses.map(rr => ({
           role: 'user' as const,
-          content: `${rr.panelistName} said:
-${rr.content}`
+          content: `${rr.panelistName} said:\n${rr.content}`
         })),
         { role: 'user' as const, content: `Question: ${run.question}` },
       ]
@@ -125,13 +118,10 @@ ${rr.content}`
 
 function parseExtraction(text: string): Extraction {
   const section = (label: string) => {
-    const match = text.match(new RegExp(`${label}:\s*
-([\s\S]*?)(?=
-[A-Z ]+:|$)`))
+    const match = text.match(new RegExp(`${label}:\\s*\\n([\\s\\S]*?)(?=\\n[A-Z ]+:|$)`))
     if (!match) return []
     return match[1]
-      .split('
-')
+      .split('\n')
       .map(l => l.replace(/^-\s*/, '').trim())
       .filter(Boolean)
   }
@@ -169,10 +159,7 @@ export async function runDeliberation(
       JUDGE.model,
       [
         { role: 'system', content: judgeSystemPrompt() },
-        { role: 'user', content: `Question: ${question}
-
-Panel responses:
-${anonPanel}` },
+        { role: 'user', content: `Question: ${question}\n\nPanel responses:\n${anonPanel}` },
       ],
       apiKey
     )
@@ -196,10 +183,7 @@ ${anonPanel}` },
       JUDGE.model,
       [
         { role: 'system', content: judgeSystemPrompt() },
-        { role: 'user', content: `Question: ${question}
-
-Full deliberation:
-${anonPanel}` },
+        { role: 'user', content: `Question: ${question}\n\nFull deliberation:\n${anonPanel}` },
       ],
       apiKey
     )) {
@@ -226,9 +210,7 @@ ${anonPanel}` },
   // Extraction phase
   run.phase = 'extraction'
   onUpdate({ phase: 'extraction' })
-  const synthesisForExtraction = run.judgeResponse || run.blindResponses.map(r => r.content).join('
-
-')
+  const synthesisForExtraction = run.judgeResponse || run.blindResponses.map(r => r.content).join('\n\n')
   const extractionText = await completeOnce(
     JUDGE.model,
     [{ role: 'user', content: extractionPrompt(synthesisForExtraction) }],

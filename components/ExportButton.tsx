@@ -16,16 +16,14 @@ function toMarkdown(run: RunState): string {
     '---',
     '',
     '## Blind Phase',
-    ...run.blindResponses.map(r => `### ${r.panelistName}
-${r.content}`),
+    ...run.blindResponses.map(r => `### ${r.panelistName}\n${r.content}`),
   ]
 
   if (run.debateRounds.length > 0) {
     for (const rd of run.debateRounds) {
       lines.push('', `## Debate Round ${rd.roundNum}`)
       for (const r of rd.responses) {
-        lines.push(`### ${r.panelistName}
-${r.content}`)
+        lines.push(`### ${r.panelistName}\n${r.content}`)
       }
     }
   }
@@ -46,8 +44,7 @@ ${r.content}`)
     run.extraction.skip.forEach(i => lines.push(`- ${i}`))
   }
 
-  return lines.join('
-')
+  return lines.join('\n')
 }
 
 export function ExportButton({ run }: Props) {

@@ -38,7 +38,7 @@ export default function HistoryPage() {
       {runs.map(run => (
         <Card key={run.id}>
           <CardContent className="pt-4 flex items-start justify-between gap-4">
-            <a href={`/run/${run.id}`} className="flex-1 group">
+            <a href={`/run?id=${run.id}`} className="flex-1 group">
               <p className="font-medium text-sm group-hover:underline line-clamp-2">
                 {run.question}
               </p>

@@ -24,7 +24,7 @@ export default function HomePage() {
     const id = crypto.randomUUID()
     // Store pending run config in sessionStorage for the run page to pick up
     sessionStorage.setItem(`pending:${id}`, JSON.stringify({ question: question.trim(), mode }))
-    router.push(`/run/${id}`)
+    router.push(`/run?id=${id}`)
   }
 
   return (

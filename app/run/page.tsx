@@ -1,7 +1,7 @@
-// app/run/[id]/page.tsx
+// app/run/page.tsx
 'use client'
-import { useEffect, useState, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { PhaseProgress } from '@/components/PhaseProgress'
 import { DebatePanel } from '@/components/DebatePanel'
 import { ExportButton } from '@/components/ExportButton'
@@ -10,8 +10,9 @@ import { getApiKey, getRunById } from '@/lib/storage'
 import { PANELISTS, JUDGE } from '@/lib/models'
 import type { RunState, Phase } from '@/types/deliberation'
 
-export default function RunPage() {
-  const { id } = useParams<{ id: string }>()
+function RunContent() {
+  const searchParams = useSearchParams()
+  const id = searchParams.get('id')
   const router = useRouter()
   const [run, setRun] = useState<RunState | null>(null)
   const [panelTokens, setPanelTokens] = useState<Record<string, string>>({})
@@ -34,6 +35,7 @@ export default function RunPage() {
   }, [])
 
   useEffect(() => {
+    if (!id) { router.push('/'); return }
     const apiKey = getApiKey()
     if (!apiKey) { router.push('/'); return }
 
@@ -100,10 +102,10 @@ export default function RunPage() {
       {(run?.judgeResponse || panelTokens[JUDGE.name]) && (
         <div className="border rounded-lg p-4 space-y-2">
           <h2 className="font-semibold text-sm">Judge Synthesis</h2>
-          <p className="text-sm whitespace-pre-wrap">
+          <div className="text-sm whitespace-pre-wrap">
             {panelTokens[JUDGE.name] || run?.judgeResponse}
             {activePhase === 'judge' && <span className="animate-pulse">▋</span>}
-          </p>
+          </div>
         </div>
       )}
 
@@ -143,5 +145,13 @@ export default function RunPage() {
         <a href="/" className="text-sm text-muted-foreground hover:underline">New deliberation</a>
       </div>
     </main>
+  )
+}
+
+export default function RunPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RunContent />
+    </Suspense>
   )
 }
