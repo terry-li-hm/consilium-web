@@ -40,8 +40,16 @@ export async function* streamCompletion(
   })
 
   if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`OpenRouter error ${response.status}: ${err}`)
+    const body = await response.text()
+    if (response.status === 402) {
+      throw new Error('OPENROUTER_OUT_OF_CREDITS: Your OpenRouter credits are exhausted. Top up at openrouter.ai/credits')
+    } else if (response.status === 429) {
+      throw new Error('OPENROUTER_RATE_LIMITED: Rate limit hit. Wait a moment and try again.')
+    } else if (response.status === 401) {
+      throw new Error('OPENROUTER_AUTH_FAILED: Invalid API key. Check your OpenRouter key.')
+    } else {
+      throw new Error(`OpenRouter error ${response.status}: ${body}`)
+    }
   }
 
   if (!response.body) throw new Error('No response body')
