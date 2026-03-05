@@ -6,7 +6,8 @@ import { PhaseProgress } from '@/components/PhaseProgress'
 import { DebatePanel } from '@/components/DebatePanel'
 import { ExportButton } from '@/components/ExportButton'
 import { runDeliberation, type PhaseUpdate } from '@/lib/consilium'
-import { getApiKey, getRunById } from '@/lib/storage'
+import { getApiKey, getRunById, getRunHistory } from '@/lib/storage'
+import { relativeTime } from '@/lib/utils'
 import { PANELISTS, JUDGE, MODES } from '@/lib/models'
 import type { RunState, Phase, Mode } from '@/types/deliberation'
 
@@ -78,6 +79,8 @@ function RunContent() {
   const [aborted, setAborted] = useState(false)
   const [question, setQuestion] = useState<string>('')
   const [runMode, setRunMode] = useState<Mode>('oxford')
+  const [historyRuns, setHistoryRuns] = useState<import('@/types/deliberation').RunState[]>([])
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
 
   const handleUpdate = useCallback((update: PhaseUpdate) => {
@@ -133,6 +136,13 @@ function RunContent() {
       router.push('/')
     }
   }, [id, router, handleUpdate])
+
+  // Load sidebar history whenever the run completes
+  useEffect(() => {
+    if (done) {
+      setHistoryRuns(getRunHistory())
+    }
+  }, [done])
 
   if (aborted) {
     return (
@@ -197,8 +207,79 @@ function RunContent() {
   const modeConfig = MODES.find(m => m.id === runMode)
   const estimatedCost = modeConfig?.cost ?? ''
 
+  // Mode badge colour map — simple palette
+  const modeBadgeClass = (mode: string) => {
+    const map: Record<string, string> = {
+      oxford: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+      quick: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+      redteam: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+      premortem: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+      forecast: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+    }
+    return map[mode] ?? 'bg-muted text-muted-foreground'
+  }
+
+  const doneRuns = historyRuns.filter(r => r.phase === 'done')
+
   return (
-    <main className="min-h-screen p-6 max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen flex">
+      {/* History sidebar — only visible on lg+ when run is done */}
+      {done && (
+        <>
+          {/* Sidebar */}
+          <aside
+            className={`hidden lg:flex flex-col w-64 shrink-0 border-r bg-background overflow-y-auto ${sidebarOpen ? '' : 'lg:hidden'}`}
+          >
+            <div className="flex items-center justify-between px-3 py-3 border-b">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">History</span>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="text-muted-foreground hover:text-foreground text-xs leading-none"
+                aria-label="Close sidebar"
+              >
+                ✕
+              </button>
+            </div>
+            <nav className="flex-1 overflow-y-auto py-2">
+              {doneRuns.length === 0 ? (
+                <p className="px-3 py-4 text-xs text-muted-foreground">No past deliberations.</p>
+              ) : (
+                doneRuns.map(r => (
+                  <a
+                    key={r.id}
+                    href={`/run?id=${r.id}`}
+                    className={`block px-3 py-2 rounded-md mx-1 my-0.5 hover:bg-muted/60 transition-colors ${r.id === id ? 'bg-muted font-medium' : ''}`}
+                  >
+                    <p className="text-xs line-clamp-2 leading-snug">{r.question}</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${modeBadgeClass(r.mode)}`}>
+                        {r.mode}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{relativeTime(r.startedAt)}</span>
+                    </div>
+                  </a>
+                ))
+              )}
+            </nav>
+            <div className="px-3 py-2 border-t">
+              <a href="/history" className="text-xs text-muted-foreground hover:underline">View all</a>
+            </div>
+          </aside>
+
+          {/* Re-open button when sidebar is collapsed */}
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="hidden lg:flex items-center justify-center w-8 shrink-0 border-r hover:bg-muted/40 transition-colors"
+              aria-label="Open sidebar"
+            >
+              <span className="text-muted-foreground text-xs rotate-90">▶</span>
+            </button>
+          )}
+        </>
+      )}
+
+    <main className="flex-1 p-6 max-w-5xl mx-auto space-y-6">
       {!done && (
         <div className="sticky top-0 bg-background/80 backdrop-blur z-10 py-2 border-b flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -387,6 +468,7 @@ function RunContent() {
         <a href="/" className="text-sm text-muted-foreground hover:underline">New deliberation</a>
       </div>
     </main>
+    </div>
   )
 }
 

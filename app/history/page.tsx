@@ -5,6 +5,7 @@ import { getRunHistory, deleteRun } from '@/lib/storage'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { relativeTime } from '@/lib/utils'
 import type { RunState } from '@/types/deliberation'
 
 export default function HistoryPage() {
@@ -45,7 +46,7 @@ export default function HistoryPage() {
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="outline" className="text-xs">{run.mode}</Badge>
                 <span className="text-xs text-muted-foreground">
-                  {new Date(run.startedAt).toLocaleDateString()}
+                  {relativeTime(run.startedAt)}
                 </span>
                 {run.phase !== 'done' && (
                   <Badge variant="secondary" className="text-xs">incomplete</Badge>
