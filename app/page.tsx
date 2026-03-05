@@ -10,6 +10,7 @@ import { getApiKey } from '@/lib/storage'
 import { MODES } from '@/lib/models'
 import { cn } from '@/lib/utils'
 import type { Mode } from '@/types/deliberation'
+import { AddToClaudeButton } from '@/components/AddToClaudeButton'
 
 const EXAMPLES: { label: string; question: string; mode: Mode }[] = [
   {
@@ -88,6 +89,7 @@ export default function HomePage() {
         <p className="text-muted-foreground text-xs">
           Multi-model deliberation for decisions that matter.
         </p>
+        <AddToClaudeButton />
       </div>
 
       <div className="w-full space-y-4">
