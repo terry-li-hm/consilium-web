@@ -98,6 +98,12 @@ function RunContent() {
     if (update.finalState) {
       setRun(update.finalState)
       setDone(true)
+      // Sync to cloud if logged in (fire-and-forget)
+      fetch('/api/runs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update.finalState),
+      }).catch(() => {}) // silently fail if not logged in or offline
     }
   }, [])
 
