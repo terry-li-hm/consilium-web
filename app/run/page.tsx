@@ -287,7 +287,7 @@ function RunContent() {
 
     <main className="flex-1 p-6 max-w-5xl mx-auto space-y-6">
       {!done && (
-        <div className="sticky top-0 bg-background/80 backdrop-blur z-10 py-2 border-b flex items-center justify-between gap-4">
+        <div className="sticky top-0 bg-background/80 backdrop-blur z-10 py-2 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex items-center gap-3">
             <span className="text-sm text-amber-600 font-medium">Keep this tab open during deliberation</span>
             {activePhase !== 'idle' && PHASE_DESCRIPTIONS[activePhase] && (
@@ -296,11 +296,11 @@ function RunContent() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <PhaseProgress phase={activePhase} />
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex-1 sm:flex-none"><PhaseProgress phase={activePhase} /></div>
             <button
               onClick={() => abortRef.current?.abort()}
-              className="px-3 py-1.5 text-xs font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors shrink-0"
             >
               Stop
             </button>
@@ -309,9 +309,17 @@ function RunContent() {
       )}
 
       {done && run && (
-        <div className="flex items-center justify-between">
+        <div className="sticky top-0 bg-background/80 backdrop-blur z-10 py-2 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <PhaseProgress phase="done" />
-          <ExportButton run={run} />
+          <div className="flex items-center gap-3">
+            <a
+              href="/"
+              className="px-3 py-1.5 text-xs font-medium rounded-md border hover:bg-muted/60 transition-colors"
+            >
+              + New deliberation
+            </a>
+            <ExportButton run={run} />
+          </div>
         </div>
       )}
 
@@ -345,6 +353,29 @@ function RunContent() {
           )
         })}
       </div>
+
+      {/* xpol streaming — show live tokens while xpol phase is active */}
+      {activePhase === 'xpol' && phaseTokens['xpol'] && (
+        <div className="space-y-3">
+          <h2 className="font-semibold text-sm">Cross-Pollination</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {PANELISTS.map(p => {
+              const xpolContent = phaseTokens['xpol']?.[p.name] ?? ''
+              if (!xpolContent) return <PanelSkeleton key={p.name} name={p.name} lab={p.lab} />
+              return (
+                <DebatePanel
+                  key={p.name}
+                  name={p.name}
+                  lab={p.lab}
+                  content={xpolContent}
+                  streaming={true}
+                  phase="xpol"
+                />
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* xpol responses — collapsed by default (intermediary content) */}
       {(run?.xpolResponses?.length ?? 0) > 0 && (
@@ -389,18 +420,19 @@ function RunContent() {
       {activePhase === 'debate' && phaseTokens['debate'] && (
         <div className="space-y-3">
           <h2 className="font-semibold text-sm">Debate</h2>
-          <div className="border rounded-lg p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {PANELISTS.map(p => {
-              const debateContent = phaseTokens['debate']?.[p.name]
-              if (!debateContent) return null
+              const debateContent = phaseTokens['debate']?.[p.name] ?? ''
+              if (!debateContent) return <PanelSkeleton key={p.name} name={p.name} lab={p.lab} />
               return (
-                <div key={p.name} className="text-sm">
-                  <span className="font-medium text-xs uppercase tracking-wide">{p.name}</span>
-                  <p className="mt-1 whitespace-pre-wrap font-mono leading-relaxed">
-                    {debateContent}
-                    <span className="animate-pulse">▋</span>
-                  </p>
-                </div>
+                <DebatePanel
+                  key={p.name}
+                  name={p.name}
+                  lab={p.lab}
+                  content={debateContent}
+                  streaming={true}
+                  phase="debate"
+                />
               )
             })}
           </div>
