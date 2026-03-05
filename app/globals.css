@@ -123,4 +123,7 @@
   body {
     @apply bg-background text-foreground;
   }
+}@media print {
+  nav, button, [data-no-print] { display: none !important; }
+  * { break-inside: avoid; }
 }
