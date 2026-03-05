@@ -103,8 +103,8 @@ function RunContent() {
     const pending = sessionStorage.getItem(`pending:${id}`)
     if (pending) {
       sessionStorage.removeItem(`pending:${id}`)
-      const { question, mode } = JSON.parse(pending)
-      runDeliberation(question, mode, apiKey, handleUpdate).catch(e => {
+      const { question, mode, domain } = JSON.parse(pending)
+      runDeliberation(question, mode, apiKey, handleUpdate, domain).catch(e => {
         setError(e.message)
       })
       return
@@ -122,9 +122,24 @@ function RunContent() {
   }, [id, router, handleUpdate])
 
   if (error) {
+    let userMessage = error
+    let helpLink: { href: string; label: string } | null = null
+    if (error.startsWith('OPENROUTER_OUT_OF_CREDITS:')) {
+      userMessage = 'Your OpenRouter credits are exhausted.'
+      helpLink = { href: 'https://openrouter.ai/credits', label: 'Top up at openrouter.ai/credits' }
+    } else if (error.startsWith('OPENROUTER_RATE_LIMITED:')) {
+      userMessage = 'Rate limit hit — wait a moment and try again.'
+    } else if (error.startsWith('OPENROUTER_AUTH_FAILED:')) {
+      userMessage = 'Invalid API key. Check your OpenRouter key.'
+    }
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-4">
-        <p className="text-destructive font-medium">Error: {error}</p>
+        <p className="text-destructive font-medium">{userMessage}</p>
+        {helpLink && (
+          <a href={helpLink.href} target="_blank" rel="noopener noreferrer" className="underline text-sm text-blue-600">
+            {helpLink.label}
+          </a>
+        )}
         <a href="/" className="underline text-sm">Start over</a>
       </main>
     )
@@ -265,7 +280,7 @@ function RunContent() {
 
       {/* Judge synthesis */}
       {showJudge && (
-        <div className="border rounded-lg p-4 space-y-2">
+        <div className="border rounded-lg p-4 space-y-2 animate-fade-in">
           <h2 className="font-semibold text-sm">Judge Synthesis</h2>
           <div className="text-sm whitespace-pre-wrap">
             {judgeContent || (
@@ -288,7 +303,7 @@ function RunContent() {
 
       {/* Recommendations */}
       {run?.extraction && (
-        <div className="border rounded-lg p-4 space-y-4">
+        <div className="border rounded-lg p-4 space-y-4 animate-fade-in">
           <h2 className="font-semibold text-sm">Recommendations</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
