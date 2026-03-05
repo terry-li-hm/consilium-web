@@ -1,14 +1,14 @@
 // app/run/page.tsx
 'use client'
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { PhaseProgress } from '@/components/PhaseProgress'
 import { DebatePanel } from '@/components/DebatePanel'
 import { ExportButton } from '@/components/ExportButton'
 import { runDeliberation, type PhaseUpdate } from '@/lib/consilium'
 import { getApiKey, getRunById } from '@/lib/storage'
-import { PANELISTS, JUDGE } from '@/lib/models'
-import type { RunState, Phase } from '@/types/deliberation'
+import { PANELISTS, JUDGE, MODES } from '@/lib/models'
+import type { RunState, Phase, Mode } from '@/types/deliberation'
 
 // Tokens tracked per phase to avoid cross-phase accumulation.
 // Outer key = phase name, inner key = panelistName.
@@ -75,6 +75,10 @@ function RunContent() {
   const [activePhase, setActivePhase] = useState<Phase>('idle')
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [aborted, setAborted] = useState(false)
+  const [question, setQuestion] = useState<string>('')
+  const [runMode, setRunMode] = useState<Mode>('oxford')
+  const abortRef = useRef<AbortController | null>(null)
 
   const handleUpdate = useCallback((update: PhaseUpdate) => {
     setActivePhase(update.phase)
@@ -103,9 +107,16 @@ function RunContent() {
     const pending = sessionStorage.getItem(`pending:${id}`)
     if (pending) {
       sessionStorage.removeItem(`pending:${id}`)
-      const { question, mode, domain } = JSON.parse(pending)
-      runDeliberation(question, mode, apiKey, handleUpdate, domain).catch(e => {
-        setError(e.message)
+      const { question: q, mode, domain } = JSON.parse(pending)
+      setQuestion(q)
+      setRunMode(mode)
+      abortRef.current = new AbortController()
+      runDeliberation(q, mode, apiKey, handleUpdate, domain, abortRef.current.signal).catch(e => {
+        if (e instanceof DOMException && e.name === 'AbortError') {
+          setAborted(true)
+        } else {
+          setError(e.message)
+        }
       })
       return
     }
@@ -114,12 +125,24 @@ function RunContent() {
     const existing = getRunById(id)
     if (existing) {
       setRun(existing)
+      setQuestion(existing.question)
+      setRunMode(existing.mode)
       setActivePhase(existing.phase)
       setDone(existing.phase === 'done')
     } else {
       router.push('/')
     }
   }, [id, router, handleUpdate])
+
+  if (aborted) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-4">
+        <p className="text-muted-foreground font-medium">Deliberation stopped. Partial results saved to history.</p>
+        <a href="/history" className="underline text-sm">View history</a>
+        <a href="/" className="underline text-sm text-muted-foreground">Start over</a>
+      </main>
+    )
+  }
 
   if (error) {
     let userMessage = error
@@ -170,6 +193,10 @@ function RunContent() {
 
   const showJudge = judgeContent || activePhase === 'judge'
 
+  // Cost estimate from mode config
+  const modeConfig = MODES.find(m => m.id === runMode)
+  const estimatedCost = modeConfig?.cost ?? ''
+
   return (
     <main className="min-h-screen p-6 max-w-5xl mx-auto space-y-6">
       {!done && (
@@ -182,7 +209,15 @@ function RunContent() {
               </span>
             )}
           </div>
-          <PhaseProgress phase={activePhase} />
+          <div className="flex items-center gap-3">
+            <PhaseProgress phase={activePhase} />
+            <button
+              onClick={() => abortRef.current?.abort()}
+              className="px-3 py-1.5 text-xs font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+            >
+              Stop
+            </button>
+          </div>
         </div>
       )}
 
@@ -191,6 +226,13 @@ function RunContent() {
           <PhaseProgress phase="done" />
           <ExportButton run={run} />
         </div>
+      )}
+
+      {/* Question display */}
+      {question && (
+        <blockquote className="border-l-2 border-muted pl-4 text-sm text-muted-foreground italic line-clamp-2">
+          &ldquo;{question}&rdquo;
+        </blockquote>
       )}
 
       {/* Blind phase panels */}
@@ -332,6 +374,13 @@ function RunContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Cost estimate — shown after run completes */}
+      {done && estimatedCost && (
+        <p className="text-xs text-muted-foreground text-center">
+          {estimatedCost} estimated cost
+        </p>
       )}
 
       <div className="text-center">
