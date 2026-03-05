@@ -31,12 +31,14 @@ export async function* streamCompletion(
   model: string,
   messages: Message[],
   apiKey: string,
-  onToken?: (token: string) => void
+  onToken?: (token: string) => void,
+  signal?: AbortSignal
 ): AsyncGenerator<string> {
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: buildHeaders(apiKey),
     body: JSON.stringify({ model, messages, stream: true }),
+    signal,
   })
 
   if (!response.ok) {
@@ -71,10 +73,11 @@ export async function* streamCompletion(
 export async function completeOnce(
   model: string,
   messages: Message[],
-  apiKey: string
+  apiKey: string,
+  signal?: AbortSignal
 ): Promise<string> {
   let result = ''
-  for await (const token of streamCompletion(model, messages, apiKey)) {
+  for await (const token of streamCompletion(model, messages, apiKey, undefined, signal)) {
     result += token
   }
   return result
