@@ -1,4 +1,24 @@
-export default function PricingPage() {
+import { createClient } from '@/lib/supabase/server'
+import { SubscriptionButton } from './SubscriptionButton'
+import Link from 'next/link'
+
+export default async function PricingPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  let tier = 'free'
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('tier')
+      .eq('id', user.id)
+      .single()
+    
+    if (profile?.tier) {
+      tier = profile.tier
+    }
+  }
+
   return (
     <main className="min-h-screen p-6 max-w-3xl mx-auto space-y-12 pt-16">
       <div className="text-center space-y-3">
@@ -28,9 +48,6 @@ export default function PricingPage() {
 
         {/* Pro */}
         <div className="border-2 border-primary rounded-xl p-6 space-y-4 relative">
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full">
-            Coming soon
-          </div>
           <div>
             <h2 className="text-xl font-semibold">Pro</h2>
             <p className="text-3xl font-bold mt-1">$9<span className="text-base font-normal text-muted-foreground">/mo</span></p>
@@ -43,14 +60,12 @@ export default function PricingPage() {
               </li>
             ))}
           </ul>
-          <button disabled className="w-full border rounded-lg py-2 text-sm opacity-50 cursor-not-allowed">
-            Join waitlist (soon)
-          </button>
+          <SubscriptionButton tier={tier} isSignedIn={!!user} />
         </div>
       </div>
 
       <div className="text-center">
-        <a href="/" className="text-sm text-muted-foreground hover:underline">Back to app</a>
+        <Link href="/" className="text-sm text-muted-foreground hover:underline">Back to app</Link>
       </div>
     </main>
   )
