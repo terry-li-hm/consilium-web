@@ -14,9 +14,10 @@ export type Phase =
   | 'error'
 
 export interface Panelist {
-  name: string        // e.g. "GPT-5.2"
+  name: string        // e.g. "GPT-5.4"
   model: string       // OpenRouter model ID
   lab: string         // e.g. "OpenAI"
+  slowStart?: boolean // true for thinking/reasoning models with high TTFT
 }
 
 export interface Message {

@@ -1,6 +1,8 @@
 // app/run/page.tsx
 'use client'
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { PhaseProgress } from '@/components/PhaseProgress'
 import { DebatePanel } from '@/components/DebatePanel'
@@ -388,6 +390,7 @@ function RunContent() {
               content={content}
               streaming={streaming}
               phase={activePhase}
+              slowStart={p.slowStart}
             />
           )
         })}
@@ -482,12 +485,14 @@ function RunContent() {
       {showJudge && (
         <div className="border rounded-lg p-4 space-y-2 animate-fade-in">
           <h2 className="font-semibold text-sm">Judge Synthesis</h2>
-          <div className="text-sm whitespace-pre-wrap">
-            {judgeContent || (
-              <span className="text-muted-foreground animate-pulse">Synthesising...</span>
-            )}
-            {activePhase === 'judge' && judgeContent && <span className="animate-pulse">▋</span>}
-          </div>
+          {judgeContent ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{judgeContent}</ReactMarkdown>
+              {activePhase === 'judge' && <span className="animate-pulse not-prose">▋</span>}
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground animate-pulse">Synthesising…</span>
+          )}
         </div>
       )}
 
@@ -495,8 +500,25 @@ function RunContent() {
       {run?.critiqueResponse && (
         <div className="border border-dashed rounded-lg p-4 space-y-2 opacity-80">
           <h2 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Critique</h2>
-          <div className="text-sm whitespace-pre-wrap text-muted-foreground">
-            {run.critiqueResponse}
+          <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{run.critiqueResponse}</ReactMarkdown>
+          </div>
+        </div>
+      )}
+
+      {/* Recommendations loading skeleton */}
+      {activePhase === 'extraction' && !run?.extraction && (
+        <div className="border rounded-lg p-4 space-y-4 animate-pulse">
+          <h2 className="font-semibold text-sm">Recommendations</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {['Do Now', 'Consider Later', 'Skip'].map(label => (
+              <div key={label} className="space-y-2">
+                <div className="h-3 bg-muted rounded w-1/2" />
+                <div className="h-3 bg-muted rounded w-full" />
+                <div className="h-3 bg-muted rounded w-4/5" />
+                <div className="h-3 bg-muted rounded w-3/5" />
+              </div>
+            ))}
           </div>
         </div>
       )}
