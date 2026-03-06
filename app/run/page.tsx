@@ -317,7 +317,7 @@ function RunContent() {
 
     <main className="flex-1 p-6 max-w-5xl mx-auto space-y-6">
       {!done && (
-        <div className="sticky top-0 bg-background/80 backdrop-blur z-10 py-2 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="sticky top-12 bg-background/80 backdrop-blur z-10 py-2 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex items-center gap-3">
             <span className="text-sm text-amber-600 font-medium">Keep this tab open during deliberation</span>
             {activePhase !== 'idle' && PHASE_DESCRIPTIONS[activePhase] && (
@@ -339,7 +339,7 @@ function RunContent() {
       )}
 
       {done && run && (
-        <div className="sticky top-0 bg-background/80 backdrop-blur z-10 py-2 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="sticky top-12 bg-background/80 backdrop-blur z-10 py-2 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <PhaseProgress phase="done" />
           <div className="flex items-center gap-3">
             <a

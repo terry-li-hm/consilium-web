@@ -38,7 +38,7 @@ export function AuthButton() {
   if (user) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</span>
+        <span className="hidden sm:inline text-xs text-muted-foreground truncate max-w-[140px]">{user.email}</span>
         <Button variant="ghost" size="sm" onClick={signOut} className="text-xs">Sign out</Button>
       </div>
     )
