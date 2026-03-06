@@ -242,13 +242,13 @@ function RunContent() {
       userMessage = capAllowed === false && tier === 'free'
         ? "You've reached your 20 runs/day limit."
         : 'Daily run limit reached.'
-      helpLink = { href: '/pricing', label: 'Upgrade to Pro for unlimited runs' }
+      helpLink = { href: '/pricing', label: 'Upgrade to Pro for unlimited runs →' }
     }
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-4">
         <p className="text-destructive font-medium">{userMessage}</p>
         {helpLink && (
-          <a href={helpLink.href} target="_blank" rel="noopener noreferrer" className="underline text-sm text-blue-600">
+          <a href={helpLink.href} className="underline text-sm text-primary">
             {helpLink.label}
           </a>
         )}

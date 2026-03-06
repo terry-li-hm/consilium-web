@@ -14,12 +14,14 @@ interface Props {
 export function ApiKeySetup({ existingKey, onSave, onClear }: Props) {
   const [value, setValue] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [err, setErr] = useState('')
 
   const handleSave = () => {
     if (!value.startsWith('sk-or-')) {
-      alert('OpenRouter keys start with sk-or-')
+      setErr('OpenRouter keys start with sk-or-')
       return
     }
+    setErr('')
     setApiKey(value)
     onSave(value)
     setValue('')
@@ -53,12 +55,13 @@ export function ApiKeySetup({ existingKey, onSave, onClear }: Props) {
           type="password"
           placeholder="sk-or-v1-..."
           value={value}
-          onChange={e => setValue(e.target.value)}
+          onChange={e => { setValue(e.target.value); setErr('') }}
           onKeyDown={e => e.key === 'Enter' && handleSave()}
           className="font-mono text-sm"
         />
         <Button onClick={handleSave} disabled={!value}>Save</Button>
       </div>
+      {err && <p className="text-xs text-destructive">{err}</p>}
     </div>
   )
 }

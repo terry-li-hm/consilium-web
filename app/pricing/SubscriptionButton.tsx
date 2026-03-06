@@ -12,6 +12,7 @@ export function SubscriptionButton({
   isSignedIn: boolean
 }) {
   const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState('')
 
   if (!isSignedIn) {
     return (
@@ -28,27 +29,29 @@ export function SubscriptionButton({
       const res = await fetch(endpoint, { method: 'POST' })
       const { url, error } = await res.json()
       if (error) {
-        alert(error)
+        setErr(error)
         return
       }
       if (url) {
         window.location.href = url
       }
-    } catch (err) {
-      console.error(err)
-      alert('Something went wrong')
+    } catch {
+      setErr('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Button
-      onClick={handleAction}
-      disabled={loading}
-      className="w-full"
-    >
-      {loading ? 'Processing...' : tier === 'pro' ? 'Manage billing' : 'Upgrade to Pro'}
-    </Button>
+    <div className="space-y-2">
+      <Button
+        onClick={handleAction}
+        disabled={loading}
+        className="w-full"
+      >
+        {loading ? 'Processing…' : tier === 'pro' ? 'Manage billing' : 'Upgrade to Pro'}
+      </Button>
+      {err && <p className="text-xs text-destructive text-center">{err}</p>}
+    </div>
   )
 }
