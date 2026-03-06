@@ -24,10 +24,8 @@ export function AuthButton() {
   }, [])
 
   async function signIn() {
-    await getSupabase().auth.signInWithOAuth({
-      provider: 'github',
-      options: { redirectTo: `${location.origin}/auth/callback` }
-    })
+    // Redirect to dedicated auth page which offers Google + GitHub
+    window.location.href = '/auth'
   }
 
   async function signOut() {
