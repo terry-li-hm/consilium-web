@@ -32,7 +32,7 @@ export default async function PricingPage() {
           <div>
             <h2 className="text-xl font-semibold">Free</h2>
             <p className="text-3xl font-bold mt-1">$0</p>
-            <p className="text-sm text-muted-foreground">Your OpenRouter key, your cost</p>
+            <p className="text-sm text-muted-foreground">Bring your own OpenRouter API key</p>
           </div>
           <ul className="space-y-2 text-sm">
             {['All 5 deliberation modes', 'Full streaming debate UI', 'Local history (browser)', 'Export to Markdown / PDF', 'Claude Code integration'].map(f => (
@@ -50,11 +50,11 @@ export default async function PricingPage() {
         <div className="border-2 border-primary rounded-xl p-6 space-y-4 relative">
           <div>
             <h2 className="text-xl font-semibold">Pro</h2>
-            <p className="text-3xl font-bold mt-1">$9<span className="text-base font-normal text-muted-foreground">/mo</span></p>
-            <p className="text-sm text-muted-foreground">Everything in Free, plus:</p>
+            <p className="text-3xl font-bold mt-1">$10<span className="text-base font-normal text-muted-foreground">/mo</span></p>
+            <p className="text-sm text-muted-foreground">No API key needed — we handle it</p>
           </div>
           <ul className="space-y-2 text-sm">
-            {['Cloud history sync', 'Shareable run URLs', 'CLI push + share', 'Cross-device access'].map(f => (
+            {['No API key required', 'Cloud history sync', 'Shareable run URLs', 'CLI push + share', 'Cross-device access'].map(f => (
               <li key={f} className="flex items-center gap-2">
                 <span className="text-primary">✓</span> {f}
               </li>

@@ -30,14 +30,20 @@ export function parseSSEChunk(chunk: string): string[] {
 export async function* streamCompletion(
   model: string,
   messages: Message[],
-  apiKey: string,
+  apiKey: string | null,
   onToken?: (token: string) => void,
   signal?: AbortSignal
 ): AsyncGenerator<string> {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const url = apiKey ? 'https://openrouter.ai/api/v1/chat/completions' : '/api/stream'
+  const headers = apiKey ? buildHeaders(apiKey) : { 'Content-Type': 'application/json' }
+  const body = apiKey
+    ? { model, messages, stream: true }
+    : { model, messages }
+
+  const response = await fetch(url, {
     method: 'POST',
-    headers: buildHeaders(apiKey),
-    body: JSON.stringify({ model, messages, stream: true }),
+    headers,
+    body: JSON.stringify(body),
     signal,
   })
 
@@ -73,7 +79,7 @@ export async function* streamCompletion(
 export async function completeOnce(
   model: string,
   messages: Message[],
-  apiKey: string,
+  apiKey: string | null,
   signal?: AbortSignal
 ): Promise<string> {
   let result = ''

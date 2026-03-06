@@ -44,7 +44,7 @@ export function anonymise(responses: ModelResponse[]): string {
 
 async function runBlindPhase(
   run: RunState,
-  apiKey: string,
+  apiKey: string | null,
   onUpdate: (update: PhaseUpdate) => void,
   signal?: AbortSignal
 ): Promise<ModelResponse[]> {
@@ -82,7 +82,7 @@ async function runBlindPhase(
 
 async function runDebatePhase(
   run: RunState,
-  apiKey: string,
+  apiKey: string | null,
   rounds: number,
   onUpdate: (update: PhaseUpdate) => void,
   signal?: AbortSignal
@@ -171,7 +171,7 @@ export function parseExtraction(text: string): Extraction {
 export async function runDeliberation(
   question: string,
   mode: Mode,
-  apiKey: string,
+  apiKey: string | null,
   onUpdate: (update: PhaseUpdate) => void,
   domain?: string,
   signal?: AbortSignal
