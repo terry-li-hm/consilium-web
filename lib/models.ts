@@ -4,7 +4,7 @@ import type { ModeConfig, Panelist } from '@/types/deliberation'
 export const PANELISTS: Panelist[] = [
   { name: 'GPT-5.2', model: 'openai/gpt-5.2-pro',          lab: 'OpenAI'    },
   { name: 'Opus',    model: 'anthropic/claude-opus-4-6', lab: 'Anthropic' },
-  { name: 'Grok',    model: 'x-ai/grok-4',              lab: 'xAI'       },
+  { name: 'Grok-4.20\u03B2', model: 'x-ai/grok-4',       lab: 'xAI'       },
   { name: 'Kimi',    model: 'moonshotai/kimi-k2.5',     lab: 'Moonshot'  },
   { name: 'GLM',     model: 'z-ai/glm-5',            lab: 'Zhipu'     },
 ]
