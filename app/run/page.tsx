@@ -9,6 +9,8 @@ import { runDeliberation, type PhaseUpdate } from '@/lib/consilium'
 import { getApiKey, getRunById, getRunHistory } from '@/lib/storage'
 import { relativeTime } from '@/lib/utils'
 import { PANELISTS, JUDGE, MODES } from '@/lib/models'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
 import type { RunState, Phase, Mode } from '@/types/deliberation'
 
 // Tokens tracked per phase to avoid cross-phase accumulation.
@@ -81,7 +83,33 @@ function RunContent() {
   const [runMode, setRunMode] = useState<Mode>('oxford')
   const [historyRuns, setHistoryRuns] = useState<import('@/types/deliberation').RunState[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [user, setUser] = useState<any>(null)
+  const [sharing, setSharing] = useState(false)
+  const [copied, setCopied] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+  }, [])
+
+  const handleShare = async () => {
+    if (!run?.id) return
+    setSharing(true)
+    try {
+      const res = await fetch(`/api/cli/runs/${run.id}/share`, { method: 'POST' })
+      const { url } = await res.json()
+      if (url) {
+        await navigator.clipboard.writeText(url)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSharing(false)
+    }
+  }
 
   const handleUpdate = useCallback((update: PhaseUpdate) => {
     setActivePhase(update.phase)
@@ -318,6 +346,17 @@ function RunContent() {
             >
               + New deliberation
             </a>
+            {user && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShare}
+                disabled={sharing}
+                className="text-xs"
+              >
+                {copied ? 'Copied!' : 'Share'}
+              </Button>
+            )}
             <ExportButton run={run} />
           </div>
         </div>
