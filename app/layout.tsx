@@ -46,11 +46,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-          <AuthButton />
-          <ThemeToggle />
+        <header className="fixed top-0 left-0 right-0 h-12 border-b bg-background/80 backdrop-blur-sm z-50 flex items-center px-4">
+          <a href="/" className="font-semibold text-sm tracking-tight">consilium</a>
+          <div className="ml-auto flex items-center gap-2">
+            <AuthButton />
+            <ThemeToggle />
+          </div>
+        </header>
+        <div className="pt-12">
+          {children}
         </div>
-        {children}
       </body>
     </html>
   );

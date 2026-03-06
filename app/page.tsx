@@ -82,12 +82,9 @@ export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-8 max-w-3xl mx-auto">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">consilium</h1>
-        <p className="text-muted-foreground text-sm font-medium">
+        <h1 className="text-2xl font-semibold tracking-tight">What do you want to deliberate?</h1>
+        <p className="text-muted-foreground text-sm">
           Five frontier models debate. One judge synthesizes.
-        </p>
-        <p className="text-muted-foreground text-xs">
-          Multi-model deliberation for decisions that matter.
         </p>
         <AddToClaudeButton />
       </div>
