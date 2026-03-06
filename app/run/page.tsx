@@ -86,13 +86,19 @@ function RunContent() {
   const [historyRuns, setHistoryRuns] = useState<import('@/types/deliberation').RunState[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [tier, setTier] = useState<'free' | 'pro' | null>(null)
+  const [capAllowed, setCapAllowed] = useState<boolean | null>(null)
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+      setAuthChecked(true)
+    })
   }, [])
 
   const handleShare = async () => {
@@ -138,9 +144,8 @@ function RunContent() {
   }, [])
 
   useEffect(() => {
+    if (!authChecked) return
     if (!id) { router.push('/'); return }
-    const apiKey = getApiKey()
-    if (!apiKey) { router.push('/'); return }
 
     // Check if there's a pending run config (from landing page)
     const pending = sessionStorage.getItem(`pending:${id}`)
@@ -150,7 +155,40 @@ function RunContent() {
       setQuestion(q)
       setRunMode(mode)
       abortRef.current = new AbortController()
-      runDeliberation(q, mode, apiKey, handleUpdate, domain, abortRef.current.signal).catch(e => {
+      const execute = async () => {
+        const apiKey = getApiKey()
+        let resolvedKey: string | null = apiKey
+
+        if (user) {
+          const supabase = createClient()
+          const [tierRes, capRes] = await Promise.all([
+            supabase.from('profiles').select('tier').eq('id', user.id).single(),
+            fetch('/api/runs/limit').then(r => r.json()),
+          ])
+
+          const userTier = tierRes.data?.tier === 'pro' ? 'pro' : 'free'
+          setTier(userTier)
+          setCapAllowed(!!capRes?.allowed)
+          if (!capRes?.allowed) {
+            setError('DAILY_CAP_REACHED')
+            return
+          }
+
+          resolvedKey = userTier === 'pro' ? null : apiKey
+          if (userTier !== 'pro' && !resolvedKey) {
+            router.push('/')
+            return
+          }
+        } else if (!resolvedKey) {
+          setTier('free')
+          router.push('/')
+          return
+        }
+
+        await runDeliberation(q, mode, resolvedKey, handleUpdate, domain, abortRef.current.signal)
+      }
+
+      execute().catch(e => {
         if (e instanceof DOMException && e.name === 'AbortError') {
           setAborted(true)
         } else {
@@ -171,7 +209,7 @@ function RunContent() {
     } else {
       router.push('/')
     }
-  }, [id, router, handleUpdate])
+  }, [authChecked, id, router, handleUpdate, user])
 
   // Load sidebar history whenever the run completes
   useEffect(() => {
@@ -200,6 +238,11 @@ function RunContent() {
       userMessage = 'Rate limit hit — wait a moment and try again.'
     } else if (error.startsWith('OPENROUTER_AUTH_FAILED:')) {
       userMessage = 'Invalid API key. Check your OpenRouter key.'
+    } else if (error === 'DAILY_CAP_REACHED') {
+      userMessage = capAllowed === false && tier === 'free'
+        ? "You've reached your 20 runs/day limit."
+        : 'Daily run limit reached.'
+      helpLink = { href: '/pricing', label: 'Upgrade to Pro for unlimited runs' }
     }
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-4">

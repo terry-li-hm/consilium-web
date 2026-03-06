@@ -11,6 +11,7 @@ import { MODES } from '@/lib/models'
 import { cn } from '@/lib/utils'
 import type { Mode } from '@/types/deliberation'
 import { AddToClaudeButton } from '@/components/AddToClaudeButton'
+import { createClient } from '@/lib/supabase/client'
 
 const EXAMPLES: { label: string; question: string; mode: Mode }[] = [
   {
@@ -50,19 +51,32 @@ export default function HomePage() {
   const [mode, setMode] = useState<Mode>('oxford')
   const [domain, setDomain] = useState<string>('')
   const [apiKey, setApiKey] = useState<string | null>(null)
+  const [userTier, setUserTier] = useState<'free' | 'pro' | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    setApiKey(getApiKey())
+    const checkTier = async () => {
+      setApiKey(getApiKey())
+      const supabase = createClient()
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) {
+        setUserTier('free')
+        return
+      }
+      const { data: profile } = await supabase.from('profiles').select('tier').eq('id', data.user.id).single()
+      setUserTier(profile?.tier === 'pro' ? 'pro' : 'free')
+    }
+    checkTier()
   }, [])
 
   const handleStart = useCallback(() => {
-    if (!question.trim() || !apiKey) return
+    if (!question.trim()) return
+    if (userTier !== 'pro' && !apiKey) return
     const id = crypto.randomUUID()
     // Store pending run config in sessionStorage for the run page to pick up
     sessionStorage.setItem(`pending:${id}`, JSON.stringify({ question: question.trim(), mode, domain: domain || undefined }))
     router.push(`/run?id=${id}`)
-  }, [question, apiKey, mode, domain, router])
+  }, [question, userTier, apiKey, mode, domain, router])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -77,7 +91,7 @@ export default function HomePage() {
     return () => textarea.removeEventListener('keydown', handler)
   }, [handleStart])
 
-  const canSubmit = !!question.trim() && !!apiKey
+  const canSubmit = !!question.trim() && (userTier === 'pro' || !!apiKey)
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-8 max-w-3xl mx-auto">
@@ -138,11 +152,15 @@ export default function HomePage() {
           </select>
         </div>
 
-        <ApiKeySetup
-          existingKey={apiKey}
-          onSave={k => setApiKey(k)}
-          onClear={() => setApiKey(null)}
-        />
+        {userTier !== 'pro' ? (
+          <ApiKeySetup
+            existingKey={apiKey}
+            onSave={k => setApiKey(k)}
+            onClear={() => setApiKey(null)}
+          />
+        ) : (
+          <p className="text-xs text-muted-foreground text-center">✓ API key included with your Pro subscription</p>
+        )}
 
         <Button
           className={cn(
