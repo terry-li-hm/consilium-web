@@ -185,7 +185,7 @@ function RunContent() {
           return
         }
 
-        await runDeliberation(q, mode, resolvedKey, handleUpdate, domain, abortRef.current.signal)
+        await runDeliberation(q, mode, resolvedKey, handleUpdate, domain, abortRef.current!.signal)
       }
 
       execute().catch(e => {
